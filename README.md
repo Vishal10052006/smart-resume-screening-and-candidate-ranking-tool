@@ -1,311 +1,267 @@
 # Smart Resume Screening and Candidate Ranking Tool
 
-> An AI-powered recruitment support system for resume screening, job-description matching, candidate scoring, and intelligent candidate ranking using Natural Language Processing (NLP) and Machine Learning.
+A machine learning and NLP-based application for screening resumes against job descriptions and helping recruiters identify the most relevant candidates.
 
-## 📌 Overview
+## Overview
 
-Recruiters often need to review a large number of resumes for a single job opening. Manual screening is time-consuming, inconsistent, and difficult to scale.
+Recruiters can receive hundreds of resumes for a single position. Reviewing each resume manually takes time and can make it difficult to apply the same criteria consistently.
 
-The **Smart Resume Screening and Candidate Ranking Tool** is designed to automate the initial screening process by extracting relevant information from resumes, comparing candidate profiles with a job description, calculating a suitability score, and ranking candidates based on job relevance.
+This project aims to automate the first stage of the recruitment workflow. A recruiter provides a job description and a set of resumes. The system extracts relevant information from the documents, compares candidate profiles with the role requirements, calculates a match score, and produces a ranked list of candidates.
 
-The project focuses on building an **explainable, modular, and production-oriented AI recruitment pipeline** rather than relying only on simple keyword matching.
+The system is intended to support recruiters during initial screening. Final hiring decisions remain with the recruiter.
 
-## 🎯 Objectives
+## Problem Statement
 
-- Automate initial resume screening.
-- Extract structured candidate information from resumes.
-- Identify technical and soft skills using NLP.
-- Compare resumes with a specific job description.
-- Measure semantic and skill-based relevance.
-- Generate an explainable candidate suitability score.
-- Rank candidates according to job-specific requirements.
-- Identify missing or weak skills.
-- Provide a foundation for a recruiter-facing dashboard.
+Traditional resume screening commonly depends on manual review or simple keyword searches. Both approaches have limitations:
 
-## ✨ Planned Features
+- Relevant information may appear in different forms or wording.
+- Keyword matching does not always capture contextual similarity.
+- Large numbers of applications increase screening time.
+- Comparing candidates consistently is difficult without a structured process.
+
+The goal of this project is to combine structured matching with NLP-based similarity to provide a more useful first-pass screening system.
+
+## Objectives
+
+- Extract useful information from PDF and DOCX resumes.
+- Parse job descriptions into relevant requirements.
+- Identify skills, education, and experience from candidate documents.
+- Compare candidates with the requirements of a particular role.
+- Generate a transparent match score.
+- Rank candidates according to job relevance.
+- Show matched and missing skills to support recruiter review.
+
+## Core Workflow
+
+```text
+Job Description + Resumes
+            |
+            v
+     Document Extraction
+            |
+            v
+       Text Processing
+            |
+            v
+     Information Extraction
+       /        |        \
+      /         |         \
+  Skills    Education   Experience
+      \         |         /
+       \        |        /
+            v
+      Feature Generation
+            |
+      +-----+------+
+      |            |
+      v            v
+ Skill Matching  Semantic Matching
+      |            |
+      +-----+------+
+            |
+            v
+       Candidate Score
+            |
+            v
+      Candidate Ranking
+            |
+            v
+       Screening Report
+```
+
+## Planned Features
 
 ### Resume Processing
 
-- PDF and DOCX resume upload.
-- Text extraction and preprocessing.
-- Resume section identification.
-- Candidate information extraction.
-- Skill and technology extraction.
-- Education and experience extraction.
+- PDF and DOCX file support
+- Text extraction
+- Resume section detection
+- Skill extraction
+- Education extraction
+- Work experience extraction
+- Basic candidate profile generation
 
-### Job Description Analysis
+### Job Description Processing
 
-- Job description parsing.
-- Required and preferred skill extraction.
-- Experience requirement extraction.
-- Education requirement extraction.
-- Job requirement categorization.
+- Job description text extraction
+- Required skill identification
+- Preferred skill identification
+- Experience requirement extraction
+- Education requirement extraction
 
-### AI Matching & Ranking
+### Candidate Matching
 
-- Skill-based matching.
-- Semantic similarity between resumes and job descriptions.
-- Experience relevance analysis.
-- Education matching.
-- Weighted candidate scoring.
-- Candidate ranking.
-- Skill-gap analysis.
-- Explainable scoring breakdown.
+- Skill-based matching
+- Semantic similarity between resumes and job descriptions
+- Experience relevance
+- Education matching
+- Weighted scoring
+- Candidate ranking
+- Missing-skill analysis
 
-### Recruiter Dashboard
+### Recruiter Interface
 
-- Create and manage job descriptions.
-- Upload multiple resumes.
-- View candidate scores.
-- Sort and filter candidates.
-- Compare candidate profiles.
-- Review matched and missing skills.
-- View ranking explanations.
+- Create a job opening
+- Upload resumes
+- View ranked candidates
+- Filter and sort results
+- Open individual candidate profiles
+- Review matched and missing requirements
 
-## 🧠 AI/ML Approach
+## Scoring Approach
 
-The system is planned as a **hybrid candidate-ranking pipeline** combining deterministic rules with NLP/ML techniques.
+The ranking system will use multiple signals instead of relying on a single keyword count.
 
-```text
-Resume / Job Description
-            │
-            ▼
-     Document Extraction
-            │
-            ▼
-      Text Preprocessing
-            │
-            ▼
-     NLP Information Extraction
-            │
-      ┌─────┼─────────┐
-      ▼     ▼         ▼
-   Skills  Education  Experience
-      │     │         │
-      └─────┼─────────┘
-            ▼
-    Feature Engineering
-            │
-      ┌─────┴──────────┐
-      ▼                ▼
- Rule-Based Match   Semantic Match
-      │                │
-      └───────┬────────┘
-              ▼
-       Candidate Scoring
-              │
-              ▼
-       Candidate Ranking
-              │
-              ▼
-       Explainable Results
-```
-
-### Planned scoring dimensions
-
-| Dimension | Purpose |
+| Signal | Purpose |
 |---|---|
-| Skills | Measures alignment with required and preferred skills |
-| Experience | Measures relevant professional experience |
-| Education | Compares educational requirements |
-| Semantic Similarity | Measures contextual similarity between resume and job description |
-| Skill Gaps | Identifies missing or weak requirements |
-| Overall Score | Combines relevant signals into a job-specific ranking |
+| Required skills | Measures coverage of essential skills |
+| Preferred skills | Adds relevance for additional requirements |
+| Experience | Measures relevant experience against the role |
+| Education | Compares the candidate's education with role requirements |
+| Semantic similarity | Captures contextual similarity between the resume and job description |
+| Overall score | Combines the selected signals into a single ranking value |
 
-> **Important:** The scoring model will be designed to support human decision-making, not to make autonomous hiring decisions.
+The scoring weights will be defined and evaluated during implementation. Scores will be presented with their underlying factors so that recruiters can understand why candidates were ranked differently.
 
-## 🏗️ Project Architecture
+## Technology
 
-The project follows a modular architecture so that document processing, NLP, ML ranking, APIs, and the frontend can evolve independently.
+The initial technology direction is:
+
+- **Python** — application and ML development
+- **FastAPI** — backend API
+- **scikit-learn** — machine learning and evaluation
+- **spaCy / Transformers** — NLP processing
+- **Sentence Transformers** — semantic embeddings
+- **PyMuPDF** — PDF text extraction
+- **python-docx** — DOCX processing
+- **PostgreSQL** — application data
+- **React** — web interface
+- **Git / GitHub** — version control
+
+The stack may be adjusted during development if another approach provides better accuracy, performance, or maintainability.
+
+## Repository Structure
 
 ```text
 smart-resume-screening-and-candidate-ranking-tool/
-│
+|
 ├── backend/
 │   └── app/
-│       ├── api/             # API routes and request handling
-│       ├── core/            # Configuration and application settings
-│       ├── models/          # Database models
-│       ├── schemas/         # API validation schemas
-│       ├── services/        # Business logic and application services
-│       ├── ml/              # ML/NLP integration
-│       └── main.py          # FastAPI application entry point
+│       ├── api/            # API routes
+│       ├── core/           # Configuration and application settings
+│       ├── models/         # Database models
+│       ├── schemas/        # Request and response schemas
+│       ├── services/       # Application and business logic
+│       ├── ml/             # NLP and ML integration
+│       └── main.py         # FastAPI entry point
 │
 ├── data/
-│   └── README.md            # Dataset and data documentation
+│   └── README.md           # Dataset documentation
 │
 ├── ml/
-│   ├── notebooks/           # Experiments and exploratory analysis
-│   ├── models/              # Trained model artifacts
-│   └── pipelines/           # ML/NLP pipelines
+│   ├── notebooks/          # Experiments and analysis
+│   ├── models/             # Model artifacts
+│   └── pipelines/          # Training and inference pipelines
 │
-├── docs/                    # Technical and project documentation
-├── .env.example             # Environment variable template
+├── docs/                   # Project documentation
+├── .env.example            # Environment variable template
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-## 🛠️ Technology Stack
+## Example
 
-| Layer | Technology |
-|---|---|
-| Programming Language | Python |
-| Backend | FastAPI |
-| NLP | spaCy / Transformers |
-| Semantic Embeddings | Sentence Transformers |
-| Machine Learning | Scikit-learn |
-| PDF Processing | PyMuPDF |
-| DOCX Processing | python-docx |
-| Database | PostgreSQL |
-| Frontend | React |
-| Version Control | Git + GitHub |
-
-The final technology selection may be refined during implementation based on performance, maintainability, dataset requirements, and deployment constraints.
-
-## 🔐 Security & Privacy
-
-Resume documents can contain personally identifiable information and employment history. The system will therefore follow privacy-conscious engineering practices, including:
-
-- Never committing resumes or other private candidate data to Git.
-- Keeping secrets and credentials outside source control.
-- Using `.env` files only for local configuration.
-- Providing `.env.example` without real credentials.
-- Validating uploaded files and supported document types.
-- Limiting access to candidate information through appropriate authorization controls.
-- Avoiding unnecessary retention of uploaded documents.
-
-## 🧪 Testing Strategy
-
-Testing will be introduced alongside implementation rather than after the complete system is built.
-
-Planned test coverage includes:
-
-- Unit tests for document extraction.
-- NLP extraction tests.
-- Scoring and ranking tests.
-- API tests.
-- Database integration tests.
-- File-upload validation tests.
-- Edge-case testing for incomplete resumes.
-- End-to-end workflow testing.
-
-## 📊 Example Result
-
-For a **Python Backend Developer** position, the system may produce an explainable result such as:
+For a Python Backend Developer position, a screening result could look like:
 
 ```text
 Candidate: Candidate A
 Overall Match: 94%
 
-Matched Skills:
-  ✓ Python
-  ✓ FastAPI
-  ✓ SQL
-  ✓ Machine Learning
+Required Skills
+  Python        Matched
+  FastAPI       Matched
+  SQL           Matched
 
-Skill Gaps:
-  ⚠ Docker
+Preferred Skills
+  Machine Learning    Matched
+  Docker              Not Found
 
 Experience Relevance: High
-Education Match: Strong
-Semantic Relevance: High
-
+Semantic Similarity: High
 Ranking: #1
 ```
 
-The exact scoring formula and thresholds will be established during the ML design phase and validated against an appropriate evaluation dataset.
+The example is illustrative. Actual scores and ranking criteria will be determined by the implemented model and evaluation results.
 
-## 🚧 Project Status
+## Development Status
 
-**Status: Initial development**
+The project is currently at the initial development stage.
 
-Current repository stage:
-
-- [x] Repository initialized
-- [x] Initial project structure created
+- [x] Repository created
+- [x] Initial project structure
 - [x] GitHub repository connected
-- [ ] System architecture finalized
-- [ ] Resume extraction pipeline
+- [ ] Requirements and architecture
+- [ ] Resume extraction
 - [ ] Job description parser
-- [ ] NLP skill extraction
-- [ ] Candidate matching engine
-- [ ] Scoring model
+- [ ] NLP pipeline
+- [ ] Skill matching
+- [ ] Candidate scoring
 - [ ] Ranking engine
-- [ ] Backend APIs
-- [ ] Recruiter dashboard
+- [ ] Backend API
+- [ ] Recruiter interface
 - [ ] Testing and evaluation
 - [ ] Deployment
 
-## 🗺️ Development Roadmap
+## Roadmap
 
-### Phase 1 — Foundation
+### 1. Foundation
 
-- Define functional and non-functional requirements.
-- Finalize system architecture.
-- Configure backend environment.
-- Establish project conventions.
+Define requirements, system architecture, data flow, database structure, and development conventions.
 
-### Phase 2 — Document Intelligence
+### 2. Document Processing
 
-- Implement PDF/DOCX extraction.
-- Build text preprocessing pipeline.
-- Extract resume sections and candidate information.
+Build reliable PDF/DOCX extraction and preprocessing, followed by structured resume and job-description parsing.
 
-### Phase 3 — Job & Candidate Matching
+### 3. Matching Engine
 
-- Parse job descriptions.
-- Extract required and preferred skills.
-- Implement skill matching.
-- Implement semantic similarity.
+Implement skill matching, semantic similarity, experience comparison, and requirement-based features.
 
-### Phase 4 — Ranking Engine
+### 4. Ranking System
 
-- Design scoring features.
-- Build candidate scoring model.
-- Implement ranking logic.
-- Add explainability and skill-gap analysis.
+Develop and evaluate the scoring model, candidate ranking logic, and result explanations.
 
-### Phase 5 — Application Layer
+### 5. Application
 
-- Build FastAPI endpoints.
-- Implement PostgreSQL persistence.
-- Build recruiter dashboard.
-- Integrate frontend and backend.
+Expose the screening pipeline through FastAPI and build the recruiter interface around it.
 
-### Phase 6 — Validation & Deployment
+### 6. Testing and Deployment
 
-- Automated testing.
-- Model evaluation.
-- Security review.
-- Performance testing.
-- Deployment and documentation.
+Evaluate extraction and ranking quality, add automated tests, address security concerns, and prepare the application for deployment.
 
-## ⚖️ Responsible AI Considerations
+## Data Privacy and Responsible Use
 
-Recruitment is a high-impact domain. The tool is intended to **assist recruiters with candidate discovery and organization**, not replace human judgment.
+Resumes contain personal and employment information. The project will follow basic data-protection practices throughout development:
 
-The project will consider:
+- Candidate documents will not be committed to the repository.
+- Secrets and credentials will remain outside source control.
+- Uploaded files will be validated before processing.
+- Access to candidate information will be restricted in the application.
+- Data retention will be kept to the minimum required by the application.
 
-- Explainability of candidate scores.
-- Data privacy.
-- Bias and fairness evaluation.
-- Human review of recommendations.
-- Avoidance of protected or irrelevant personal attributes in ranking.
-- Monitoring for unintended model behavior.
+Because recruitment is a high-impact use case, the system is designed as a **screening aid rather than an automated hiring decision-maker**. Model performance and potential sources of bias will be evaluated as part of the project.
 
-## 👨‍💻 Author
+## Project Status
 
-**Vishal Raj**
+**Early development — architecture and implementation in progress.**
 
-Computer Science & Engineering (AI) Student
+## Author
 
-GitHub: [@Vishal10052006](https://github.com/Vishal10052006)
+**Vishal Raj**  
+Computer Science & Engineering (AI)
 
-## 📄 License
+GitHub: [Vishal10052006](https://github.com/Vishal10052006)
 
-This project is licensed under the terms of the license included in this repository.
+## License
 
----
-
-⭐ If you find this project useful, consider giving the repository a star.
+See the [LICENSE](LICENSE) file for license information.
