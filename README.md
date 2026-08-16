@@ -1,144 +1,90 @@
 # Smart Resume Screening and Candidate Ranking Tool
 
-A machine learning and NLP-based application for screening resumes against job descriptions and helping recruiters identify the most relevant candidates.
+A web application that screens resumes against a job description and ranks candidates using NLP-based text similarity and skill matching.
 
 ## Overview
 
-Recruiters can receive hundreds of resumes for a single position. Reviewing each resume manually takes time and can make it difficult to apply the same criteria consistently.
+Initial resume screening is often repetitive: recruiters read a large number of documents, identify relevant skills, and compare each candidate with the same job requirements.
 
-This project aims to automate the first stage of the recruitment workflow. A recruiter provides a job description and a set of resumes. The system extracts relevant information from the documents, compares candidate profiles with the role requirements, calculates a match score, and produces a ranked list of candidates.
+This project automates that first-pass process. A recruiter provides a job description and uploads multiple resumes. The application extracts the document text, identifies skills and basic candidate information, calculates several matching signals, and returns an ordered candidate list with an explanation of the score.
 
-The system is intended to support recruiters during initial screening. Final hiring decisions remain with the recruiter.
+The system is intended to assist the recruiter. It does not make the final hiring decision.
 
-## Problem Statement
+## Current MVP
 
-Traditional resume screening commonly depends on manual review or simple keyword searches. Both approaches have limitations:
+The repository contains a working FastAPI application with a browser-based interface.
 
-- Relevant information may appear in different forms or wording.
-- Keyword matching does not always capture contextual similarity.
-- Large numbers of applications increase screening time.
-- Comparing candidates consistently is difficult without a structured process.
+### Implemented
 
-The goal of this project is to combine structured matching with NLP-based similarity to provide a more useful first-pass screening system.
+- PDF, DOCX, and TXT resume parsing
+- Multiple resume upload
+- Job-description input
+- Skill extraction from job descriptions and resumes
+- Email and phone extraction
+- Basic experience-year extraction
+- TF-IDF semantic similarity
+- Skill overlap scoring
+- Keyword overlap scoring
+- Weighted candidate score
+- Candidate ranking
+- Matched-skill and missing-skill analysis
+- File-size and file-type validation
+- Health-check endpoint
+- Responsive recruiter interface
 
-## Objectives
+### Scoring
 
-- Extract useful information from PDF and DOCX resumes.
-- Parse job descriptions into relevant requirements.
-- Identify skills, education, and experience from candidate documents.
-- Compare candidates with the requirements of a particular role.
-- Generate a transparent match score.
-- Rank candidates according to job relevance.
-- Show matched and missing skills to support recruiter review.
+The MVP uses three transparent signals:
 
-## Core Workflow
+```text
+Overall Score
+    = 45% semantic similarity
+    + 40% skill match
+    + 15% keyword match
+```
+
+This is deliberately simple and explainable. The architecture can later be extended with sentence embeddings, named-entity recognition, learned ranking models, and a larger skills taxonomy.
+
+## Application Flow
 
 ```text
 Job Description + Resumes
             |
             v
-     Document Extraction
+     PDF/DOCX/TXT Parser
             |
             v
-       Text Processing
+       Text Normalization
             |
             v
-     Information Extraction
-       /        |        \
-      /         |         \
-  Skills    Education   Experience
-      \         |         /
-       \        |        /
-            v
-      Feature Generation
+      Skill Extraction
             |
-      +-----+------+
-      |            |
-      v            v
- Skill Matching  Semantic Matching
-      |            |
-      +-----+------+
-            |
-            v
-       Candidate Score
-            |
-            v
-      Candidate Ranking
-            |
-            v
-       Screening Report
+      +-----+-----------+
+      |                 |
+      v                 v
+ Skill Matching    TF-IDF Similarity
+      |                 |
+      +--------+--------+
+               |
+               v
+        Weighted Score
+               |
+               v
+       Candidate Ranking
+               |
+               v
+     Screening Dashboard
 ```
 
-## Planned Features
+## Tech Stack
 
-### Resume Processing
-
-- PDF and DOCX file support
-- Text extraction
-- Resume section detection
-- Skill extraction
-- Education extraction
-- Work experience extraction
-- Basic candidate profile generation
-
-### Job Description Processing
-
-- Job description text extraction
-- Required skill identification
-- Preferred skill identification
-- Experience requirement extraction
-- Education requirement extraction
-
-### Candidate Matching
-
-- Skill-based matching
-- Semantic similarity between resumes and job descriptions
-- Experience relevance
-- Education matching
-- Weighted scoring
-- Candidate ranking
-- Missing-skill analysis
-
-### Recruiter Interface
-
-- Create a job opening
-- Upload resumes
-- View ranked candidates
-- Filter and sort results
-- Open individual candidate profiles
-- Review matched and missing requirements
-
-## Scoring Approach
-
-The ranking system will use multiple signals instead of relying on a single keyword count.
-
-| Signal | Purpose |
-|---|---|
-| Required skills | Measures coverage of essential skills |
-| Preferred skills | Adds relevance for additional requirements |
-| Experience | Measures relevant experience against the role |
-| Education | Compares the candidate's education with role requirements |
-| Semantic similarity | Captures contextual similarity between the resume and job description |
-| Overall score | Combines the selected signals into a single ranking value |
-
-The scoring weights will be defined and evaluated during implementation. Scores will be presented with their underlying factors so that recruiters can understand why candidates were ranked differently.
-
-## Technology
-
-The initial technology direction is:
-
-- **Python** — application and ML development
-- **FastAPI** — backend API
-- **scikit-learn** — machine learning and evaluation
-- **spaCy / Transformers** — NLP processing
-- **Sentence Transformers** — semantic embeddings
+- **Python** — application logic
+- **FastAPI** — REST API and web server
+- **scikit-learn** — TF-IDF and cosine similarity
 - **PyMuPDF** — PDF text extraction
-- **python-docx** — DOCX processing
-- **PostgreSQL** — application data
-- **React** — web interface
-- **Git / GitHub** — version control
-
-The stack may be adjusted during development if another approach provides better accuracy, performance, or maintainability.
+- **python-docx** — DOCX text extraction
+- **HTML/CSS/JavaScript** — recruiter interface
+- **Git/GitHub** — source control
 
 ## Repository Structure
 
@@ -146,114 +92,135 @@ The stack may be adjusted during development if another approach provides better
 smart-resume-screening-and-candidate-ranking-tool/
 |
 ├── backend/
-│   └── app/
-│       ├── api/            # API routes
-│       ├── core/           # Configuration and application settings
-│       ├── models/         # Database models
-│       ├── schemas/        # Request and response schemas
-│       ├── services/       # Application and business logic
-│       ├── ml/             # NLP and ML integration
-│       └── main.py         # FastAPI entry point
+│   ├── app/
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── __init__.py
+│   ├── .env.example
+│   └── requirements.txt
 │
 ├── data/
-│   └── README.md           # Dataset documentation
+│   └── README.md
 │
 ├── ml/
-│   ├── notebooks/          # Experiments and analysis
-│   ├── models/             # Model artifacts
-│   └── pipelines/          # Training and inference pipelines
+│   └── __init__.py
 │
-├── docs/                   # Project documentation
-├── .env.example            # Environment variable template
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-## Example
+## Run Locally
 
-For a Python Backend Developer position, a screening result could look like:
+### 1. Clone the repository
 
-```text
-Candidate: Candidate A
-Overall Match: 94%
-
-Required Skills
-  Python        Matched
-  FastAPI       Matched
-  SQL           Matched
-
-Preferred Skills
-  Machine Learning    Matched
-  Docker              Not Found
-
-Experience Relevance: High
-Semantic Similarity: High
-Ranking: #1
+```bash
+git clone https://github.com/Vishal10052006/smart-resume-screening-and-candidate-ranking-tool.git
+cd smart-resume-screening-and-candidate-ranking-tool
 ```
 
-The example is illustrative. Actual scores and ranking criteria will be determined by the implemented model and evaluation results.
+### 2. Create a virtual environment
 
-## Development Status
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-The project is currently at the initial development stage.
+On Windows:
 
-- [x] Repository created
-- [x] Initial project structure
-- [x] GitHub repository connected
-- [ ] Requirements and architecture
-- [ ] Resume extraction
-- [ ] Job description parser
-- [ ] NLP pipeline
-- [ ] Skill matching
-- [ ] Candidate scoring
-- [ ] Ranking engine
-- [ ] Backend API
-- [ ] Recruiter interface
-- [ ] Testing and evaluation
-- [ ] Deployment
+```powershell
+.venv\Scripts\activate
+```
 
-## Roadmap
+### 3. Install dependencies
 
-### 1. Foundation
+```bash
+pip install -r backend/requirements.txt
+```
 
-Define requirements, system architecture, data flow, database structure, and development conventions.
+### 4. Start the application
 
-### 2. Document Processing
+```bash
+uvicorn backend.app.main:app --reload
+```
 
-Build reliable PDF/DOCX extraction and preprocessing, followed by structured resume and job-description parsing.
+Open `http://127.0.0.1:8000` in a browser.
 
-### 3. Matching Engine
+API documentation is available at `http://127.0.0.1:8000/docs`.
 
-Implement skill matching, semantic similarity, experience comparison, and requirement-based features.
+## Example Input
 
-### 4. Ranking System
+**Job description:**
 
-Develop and evaluate the scoring model, candidate ranking logic, and result explanations.
+```text
+Python Backend Developer
 
-### 5. Application
+We are looking for a Python developer with experience in FastAPI,
+REST APIs, SQL and machine learning. Docker and Git are preferred.
+```
 
-Expose the screening pipeline through FastAPI and build the recruiter interface around it.
+Upload candidate resumes and the application will return results similar to:
 
-### 6. Testing and Deployment
+```text
+#1 candidate_a.pdf       91.4%
+#2 candidate_b.pdf       78.2%
+#3 candidate_c.pdf       64.7%
+```
 
-Evaluate extraction and ranking quality, add automated tests, address security concerns, and prepare the application for deployment.
+Each result includes the component scores, matched skills, missing skills, detected contact information, and detected experience where available.
 
-## Data Privacy and Responsible Use
+## API
 
-Resumes contain personal and employment information. The project will follow basic data-protection practices throughout development:
+### `GET /health`
 
-- Candidate documents will not be committed to the repository.
-- Secrets and credentials will remain outside source control.
-- Uploaded files will be validated before processing.
-- Access to candidate information will be restricted in the application.
-- Data retention will be kept to the minimum required by the application.
+Returns application health information.
 
-Because recruitment is a high-impact use case, the system is designed as a **screening aid rather than an automated hiring decision-maker**. Model performance and potential sources of bias will be evaluated as part of the project.
+### `POST /api/analyze`
 
-## Project Status
+Accepts:
 
-**Early development — architecture and implementation in progress.**
+- `job_description` — job description text
+- `resumes` — one or more PDF, DOCX, or TXT files
+
+Returns a JSON response containing ranked candidates and scoring details.
+
+Interactive API documentation is available through FastAPI at `/docs`.
+
+## Limitations of the MVP
+
+The current version is intended as a working academic/project prototype. It does not yet include:
+
+- Persistent database storage
+- User authentication
+- Learned ranking models
+- Transformer-based embeddings
+- Advanced resume section classification
+- OCR for scanned PDFs
+- Bias evaluation on a representative recruitment dataset
+- Production document storage
+
+These are natural next stages for the project rather than requirements for the current MVP.
+
+## Data Privacy
+
+Resume files can contain personally identifiable information. The application processes uploaded files in memory and does not intentionally store them on disk. Candidate resumes, credentials, and other private data should not be committed to this repository.
+
+The `.gitignore` file includes common rules for local environment files and candidate documents.
+
+## Responsible Use
+
+Recruitment is a high-impact domain. A match score should be treated as a screening signal, not as a definitive measure of candidate quality. Human review is required before making employment decisions.
+
+## Future Improvements
+
+1. Replace the static skills vocabulary with a maintained skills taxonomy.
+2. Add sentence-transformer embeddings for stronger semantic matching.
+3. Add structured resume section extraction.
+4. Introduce a PostgreSQL database for jobs and candidate records.
+5. Add recruiter authentication and role-based access.
+6. Add model evaluation and ranking metrics such as Precision@K and NDCG.
+7. Add automated tests and CI.
+8. Add deployment configuration and monitoring.
 
 ## Author
 
@@ -264,4 +231,4 @@ GitHub: [Vishal10052006](https://github.com/Vishal10052006)
 
 ## License
 
-See the [LICENSE](LICENSE) file for license information.
+See the `LICENSE` file for license information.
