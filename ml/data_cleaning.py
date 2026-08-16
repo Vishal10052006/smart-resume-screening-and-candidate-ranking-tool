@@ -48,26 +48,28 @@ def clean_dataset(input_path: Path, output_path: Path, report_path: Path) -> dic
 
     text_columns = df.select_dtypes(include=["object"]).columns.tolist()
     for column in text_columns:
-        df[column] = df[column].map(normalize_text)
+        # Use .loc so pandas Copy-on-Write does not interpret this as chained assignment.
+        df.loc[:, column] = df[column].map(normalize_text)
 
     # Remove only exact duplicate records; do not aggressively discard rows.
-    df = df.drop_duplicates().reset_index(drop=True)
+    # .copy() makes ownership explicit and avoids future chained-assignment warnings.
+    df = df.drop_duplicates().reset_index(drop=True).copy()
 
     if TARGET_COLUMN not in df.columns:
         raise ValueError(f"Required target column '{TARGET_COLUMN}' was not found")
 
     # The model predicts a normalized match score, so invalid targets are excluded.
-    df[TARGET_COLUMN] = pd.to_numeric(df[TARGET_COLUMN], errors="coerce")
+    df.loc[:, TARGET_COLUMN] = pd.to_numeric(df[TARGET_COLUMN], errors="coerce")
     invalid_target_mask = (
         df[TARGET_COLUMN].isna()
         | ~df[TARGET_COLUMN].between(0.0, 1.0, inclusive="both")
     )
     invalid_target_count = int(invalid_target_mask.sum())
-    df = df.loc[~invalid_target_mask].reset_index(drop=True)
+    df = df.loc[~invalid_target_mask].copy().reset_index(drop=True)
 
     # Empty text is preferable to invented information for optional resume fields.
     for column in text_columns:
-        df[column] = df[column].fillna("")
+        df.loc[:, column] = df[column].fillna("")
 
     final_rows, final_columns = df.shape
     remaining_missing = {
