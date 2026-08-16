@@ -1,90 +1,161 @@
 # Smart Resume Screening and Candidate Ranking Tool
 
-A web application that screens resumes against a job description and ranks candidates using NLP-based text similarity and skill matching.
+A machine-learning application that compares candidate resumes with job requirements and produces an explainable candidate ranking.
 
 ## Overview
 
-Initial resume screening is often repetitive: recruiters read a large number of documents, identify relevant skills, and compare each candidate with the same job requirements.
+Initial resume screening is repetitive: recruiters read many documents, identify relevant skills, and compare candidates against the same requirements.
 
-This project automates that first-pass process. A recruiter provides a job description and uploads multiple resumes. The application extracts the document text, identifies skills and basic candidate information, calculates several matching signals, and returns an ordered candidate list with an explanation of the score.
+This project automates that first-pass workflow. A recruiter provides a job description and uploads multiple resumes. The system extracts text, builds resume/job representations, predicts a match score with a supervised NLP model, and shows skill-level diagnostics alongside the ranking.
 
-The system is intended to assist the recruiter. It does not make the final hiring decision.
+The tool is intended to support screening, not replace human hiring decisions.
 
 ## Current MVP
-
-The repository contains a working FastAPI application with a browser-based interface.
 
 ### Implemented
 
 - PDF, DOCX, and TXT resume parsing
 - Multiple resume upload
 - Job-description input
-- Skill extraction from job descriptions and resumes
-- Email and phone extraction
-- Basic experience-year extraction
-- TF-IDF semantic similarity
-- Skill overlap scoring
-- Keyword overlap scoring
-- Weighted candidate score
-- Candidate ranking
-- Matched-skill and missing-skill analysis
+- Resume/job text preprocessing
+- Supervised ML training pipeline
+- TF-IDF feature extraction
+- Ridge regression for match-score prediction
+- Candidate ranking by predicted match score
+- Skill extraction and skill-gap diagnostics
+- Email and basic experience extraction
+- Fallback TF-IDF similarity when a trained model artifact is unavailable
+- FastAPI REST API
+- Browser-based recruiter interface
 - File-size and file-type validation
 - Health-check endpoint
-- Responsive recruiter interface
 
-### Scoring
+## Dataset
 
-The MVP uses three transparent signals:
+The initial training dataset is **Resume Data for Ranking** from Kaggle.
 
-```text
-Overall Score
-    = 45% semantic similarity
-    + 40% skill match
-    + 15% keyword match
-```
+Source: https://www.kaggle.com/datasets/thejohnwick001/resume-data-for-ranking
 
-This is deliberately simple and explainable. The architecture can later be extended with sentence embeddings, named-entity recognition, learned ranking models, and a larger skills taxonomy.
+The dataset contains **9,544 records and 35 columns**, including resume information, job requirements, and the `matched_score` target.
 
-## Application Flow
+The raw dataset is not committed to this repository. Download it from Kaggle and place it at:
 
 ```text
-Job Description + Resumes
-            |
-            v
-     PDF/DOCX/TXT Parser
-            |
-            v
-       Text Normalization
-            |
-            v
-      Skill Extraction
-            |
-      +-----+-----------+
-      |                 |
-      v                 v
- Skill Matching    TF-IDF Similarity
-      |                 |
-      +--------+--------+
-               |
-               v
-        Weighted Score
-               |
-               v
-       Candidate Ranking
-               |
-               v
-     Screening Dashboard
+data/raw/resume_data_for_ranking.csv
 ```
 
-## Tech Stack
+See `data/raw/README.md` for setup instructions.
 
-- **Python** — application logic
-- **FastAPI** — REST API and web server
-- **scikit-learn** — TF-IDF and cosine similarity
-- **PyMuPDF** — PDF text extraction
-- **python-docx** — DOCX text extraction
-- **HTML/CSS/JavaScript** — recruiter interface
-- **Git/GitHub** — source control
+## ML Pipeline
+
+```text
+Kaggle Dataset
+      |
+      v
+Data Validation
+      |
+      v
+Resume + Job Text Construction
+      |
+      v
+TF-IDF Vectorization
+      |
+      v
+Ridge Regression
+      |
+      v
+Predicted Match Score
+      |
+      v
+Candidate Ranking
+```
+
+The training representation uses candidate-side fields such as skills, education, experience, positions, responsibilities, and career objective together with job-side requirements, responsibilities, and required skills.
+
+### Initial evaluation
+
+The first hold-out experiment used an 80/20 split with `random_state=42`.
+
+| Metric | Result |
+|---|---:|
+| MAE | 0.0919 |
+| RMSE | 0.1195 |
+| R² | 0.4840 |
+|
+
+These are development results on a single hold-out split and should not be interpreted as production performance.
+
+The detailed values are stored in `models/evaluation.json`.
+
+## Training the Model
+
+After downloading the dataset:
+
+```bash
+python -m ml.train --data data/raw/resume_data_for_ranking.csv
+```
+
+This creates:
+
+```text
+models/resume_match_ridge.joblib
+models/evaluation.json
+```
+
+The binary model is intentionally not committed to GitHub. This keeps the repository small and makes the training process reproducible.
+
+## Running the Application
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Vishal10052006/smart-resume-screening-and-candidate-ranking-tool.git
+cd smart-resume-screening-and-candidate-ranking-tool
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 4. Download the dataset and train
+
+```bash
+mkdir -p data/raw
+# Place resume_data_for_ranking.csv in data/raw/
+python -m ml.train --data data/raw/resume_data_for_ranking.csv
+```
+
+### 5. Start the API
+
+```bash
+uvicorn backend.app.main:app --reload
+```
+
+Open `http://127.0.0.1:8000` for the interface or `http://127.0.0.1:8000/docs` for the API documentation.
+
+## API
+
+### `GET /health`
+
+Returns application and model availability information.
+
+### `POST /api/analyze`
+
+Accepts:
+
+- `job_description` — job description text
+- `resumes` — one or more PDF, DOCX, or TXT files
+
+Returns ranked candidates with the predicted match score and supporting diagnostics.
 
 ## Repository Structure
 
@@ -94,140 +165,67 @@ smart-resume-screening-and-candidate-ranking-tool/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
-│   │   └── main.py
+│   │   ├── main.py
+│   │   └── ml_predictor.py
 │   ├── __init__.py
 │   ├── .env.example
 │   └── requirements.txt
 │
 ├── data/
+│   ├── raw/
+│   │   └── README.md
 │   └── README.md
 │
 ├── ml/
-│   └── __init__.py
+│   ├── __init__.py
+│   ├── preprocessing.py
+│   └── train.py
+│
+├── models/
+│   ├── README.md
+│   └── evaluation.json
 │
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-## Run Locally
+## Limitations
 
-### 1. Clone the repository
+The current version is an academic/project MVP. It does not yet include:
 
-```bash
-git clone https://github.com/Vishal10052006/smart-resume-screening-and-candidate-ranking-tool.git
-cd smart-resume-screening-and-candidate-ranking-tool
-```
-
-### 2. Create a virtual environment
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-On Windows:
-
-```powershell
-.venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-### 4. Start the application
-
-```bash
-uvicorn backend.app.main:app --reload
-```
-
-Open `http://127.0.0.1:8000` in a browser.
-
-API documentation is available at `http://127.0.0.1:8000/docs`.
-
-## Example Input
-
-**Job description:**
-
-```text
-Python Backend Developer
-
-We are looking for a Python developer with experience in FastAPI,
-REST APIs, SQL and machine learning. Docker and Git are preferred.
-```
-
-Upload candidate resumes and the application will return results similar to:
-
-```text
-#1 candidate_a.pdf       91.4%
-#2 candidate_b.pdf       78.2%
-#3 candidate_c.pdf       64.7%
-```
-
-Each result includes the component scores, matched skills, missing skills, detected contact information, and detected experience where available.
-
-## API
-
-### `GET /health`
-
-Returns application health information.
-
-### `POST /api/analyze`
-
-Accepts:
-
-- `job_description` — job description text
-- `resumes` — one or more PDF, DOCX, or TXT files
-
-Returns a JSON response containing ranked candidates and scoring details.
-
-Interactive API documentation is available through FastAPI at `/docs`.
-
-## Limitations of the MVP
-
-The current version is intended as a working academic/project prototype. It does not yet include:
-
-- Persistent database storage
-- User authentication
-- Learned ranking models
-- Transformer-based embeddings
+- OCR for scanned/image-only resumes
+- Transformer embeddings
 - Advanced resume section classification
-- OCR for scanned PDFs
-- Bias evaluation on a representative recruitment dataset
-- Production document storage
+- Persistent candidate database
+- Authentication and role-based access
+- Comprehensive bias and fairness evaluation
+- Ranking-specific validation such as NDCG@K
+- Production monitoring
 
-These are natural next stages for the project rather than requirements for the current MVP.
+These are planned improvements rather than claims about the current implementation.
 
-## Data Privacy
+## Data Privacy and Responsible Use
 
-Resume files can contain personally identifiable information. The application processes uploaded files in memory and does not intentionally store them on disk. Candidate resumes, credentials, and other private data should not be committed to this repository.
+Resumes may contain personally identifiable information. Candidate documents should not be committed to this repository. The API processes uploaded files in memory and does not intentionally persist them.
 
-The `.gitignore` file includes common rules for local environment files and candidate documents.
+A predicted match score is a screening signal. It should not be used as the sole basis for employment decisions.
 
-## Responsible Use
+## Future Work
 
-Recruitment is a high-impact domain. A match score should be treated as a screening signal, not as a definitive measure of candidate quality. Human review is required before making employment decisions.
-
-## Future Improvements
-
-1. Replace the static skills vocabulary with a maintained skills taxonomy.
-2. Add sentence-transformer embeddings for stronger semantic matching.
-3. Add structured resume section extraction.
-4. Introduce a PostgreSQL database for jobs and candidate records.
-5. Add recruiter authentication and role-based access.
-6. Add model evaluation and ranking metrics such as Precision@K and NDCG.
-7. Add automated tests and CI.
-8. Add deployment configuration and monitoring.
+1. Compare the baseline model with tree-based regressors and transformer embeddings.
+2. Add ranking metrics such as NDCG@K and Precision@K.
+3. Improve skill/entity extraction with a maintained taxonomy or NER model.
+4. Add OCR for scanned resumes.
+5. Add database storage, authentication, and recruiter-specific workflows.
+6. Add automated tests and CI.
 
 ## Author
 
 **Vishal Raj**  
 Computer Science & Engineering (AI)
 
-GitHub: [Vishal10052006](https://github.com/Vishal10052006)
+GitHub: https://github.com/Vishal10052006
 
 ## License
 
