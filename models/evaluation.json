@@ -1,0 +1,11 @@
+{
+  "model": "TF-IDF + Ridge Regression",
+  "dataset_rows": 9544,
+  "train_samples": 7635,
+  "test_samples": 1909,
+  "features": 20000,
+  "mae": 0.0919,
+  "rmse": 0.1195,
+  "r2": 0.484,
+  "random_state": 42
+}
