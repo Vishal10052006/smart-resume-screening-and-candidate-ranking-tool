@@ -9,7 +9,6 @@ __pycache__
 .env
 *.pdf
 *.docx
-*.txt
 data/raw/*.csv
 data/uploads
 models/*.joblib
