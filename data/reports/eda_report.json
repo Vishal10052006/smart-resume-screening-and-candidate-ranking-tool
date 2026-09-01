@@ -1,0 +1,86 @@
+{
+  "dataset": {
+    "rows": 9544,
+    "columns": 35,
+    "duplicate_rows": 0,
+    "job_positions": 28
+  },
+  "data_quality": {
+    "raw_missing_cells": 101704,
+    "clean_missing_cells": 0,
+    "raw_duplicate_rows": 0,
+    "clean_duplicate_rows": 0,
+    "invalid_target_rows_removed": 0
+  },
+  "target": {
+    "name": "matched_score",
+    "min": 0.0,
+    "max": 0.97,
+    "mean": 0.6608308276,
+    "median": 0.683333333,
+    "std": 0.1670396418,
+    "unique_values": 229,
+    "score_bands": {
+      "0.00-0.20": 48,
+      "0.20-0.40": 1110,
+      "0.40-0.60": 1512,
+      "0.60-0.80": 4593,
+      "0.80-1.00": 2281
+    }
+  },
+  "text": {
+    "resume_words": {"mean": 101.3, "median": 91, "min": 0, "max": 292},
+    "job_words": {"mean": 64.2, "median": 59, "min": 3, "max": 237}
+  },
+  "skills": {
+    "resume_count_mean": 21.6,
+    "resume_count_median": 22,
+    "job_count_mean": 0.0,
+    "job_count_median": 0,
+    "top_20": {
+      "python": 3640,
+      "machine learning": 3444,
+      "sql": 1736,
+      "data analysis": 1568,
+      "deep learning": 1512,
+      "excel": 1494,
+      "java": 1204,
+      "c++": 1148,
+      "natural language processing": 1092,
+      "sales": 1068,
+      "artificial intelligence": 980,
+      "documentation": 952,
+      "data science": 924,
+      "project management": 924,
+      "accounting": 846
+    }
+  },
+  "job_positions": {
+    "top_10": {
+      "Project Coordinator (Civil)": 342,
+      "Site Engineer": 342,
+      "Civil Engineer": 342,
+      "HR Officer": 342,
+      "Database Administrator (DBA)": 341,
+      "AI Engineer": 341,
+      "Mechanical Designer": 341,
+      "Mechanical Engineer": 341,
+      "System Administrator (Operation & Maintenance of Server, Storage & Service Desk System)": 341,
+      "Senior Software Engineer": 341
+    }
+  },
+  "numeric_correlations_with_target": {
+    "resume_words": 0.0417,
+    "job_words": 0.0,
+    "resume_skill_count": 0.0342,
+    "job_skill_count": 0.0
+  },
+  "modeling_notes": [
+    "matched_score is a continuous regression target.",
+    "Resume and job text are suitable for TF-IDF/NLP features.",
+    "Skill counts and resume/job skill overlap are candidates for structured features.",
+    "matched_score must never be included in the feature matrix.",
+    "Job positions repeat heavily, so role-aware validation is recommended.",
+    "The near-uniform job-position representation suggests deliberate balancing or construction; external validation is recommended before production claims."
+  ]
+}
