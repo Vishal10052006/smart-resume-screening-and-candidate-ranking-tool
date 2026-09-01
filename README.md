@@ -12,12 +12,12 @@ The tool is intended to support screening, not replace human hiring decisions.
 
 ## Current MVP
 
-### Implemented
-
 - PDF, DOCX, and TXT resume parsing
 - Multiple resume upload
 - Job-description input
 - Resume/job text preprocessing
+- Dataset cleaning and validation pipeline
+- Exploratory data analysis pipeline
 - Supervised ML training pipeline
 - TF-IDF feature extraction
 - Ridge regression for match-score prediction
@@ -46,13 +46,57 @@ data/raw/resume_data_for_ranking.csv
 
 See `data/raw/README.md` for setup instructions.
 
+## Data Preparation and EDA
+
+The project keeps the raw source data separate from generated datasets. The cleaning pipeline:
+
+- normalizes column names and text whitespace
+- checks and removes exact duplicate records
+- validates `matched_score` as a numeric value in the 0–1 range
+- handles missing text without inventing numeric values
+- writes a machine-readable quality report
+
+Run cleaning with:
+
+```bash
+python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
+```
+
+Then run EDA on the cleaned data:
+
+```bash
+python -m ml.eda --data data/processed/cleaned_resume_data.csv
+```
+
+The EDA report examines target distribution, job-position distribution, resume/job text length, skill frequencies, and simple relationships between derived numeric features and the target.
+
+### EDA findings
+
+- **9,544** cleaned records and **35** columns
+- **0** duplicate records
+- **0** invalid target records removed
+- **0** missing cells after cleaning
+- **28** distinct job positions
+- Mean `matched_score`: **0.6608**
+- Median `matched_score`: **0.6833**
+- Target range: **0.00–0.97**
+- Resume-side text averages about **101 words** per record
+- Job-side text averages about **64 words** per record
+
+The job positions are represented at nearly equal frequencies. This suggests deliberate balancing or construction of the dataset, so model results should be validated on newly collected or external examples before production use.
+
+Detailed outputs are stored in `data/reports/`.
+
 ## ML Pipeline
 
 ```text
 Kaggle Dataset
       |
       v
-Data Validation
+Data Cleaning
+      |
+      v
+Exploratory Data Analysis
       |
       v
 Resume + Job Text Construction
@@ -74,25 +118,25 @@ The training representation uses candidate-side fields such as skills, education
 
 ### Initial evaluation
 
-The first hold-out experiment used an 80/20 split with `random_state=42`.
+The first development experiment used an 80/20 split with `random_state=42`.
 
 | Metric | Result |
 |---|---:|
 | MAE | 0.0919 |
 | RMSE | 0.1195 |
 | R² | 0.4840 |
-|
 
-These are development results on a single hold-out split and should not be interpreted as production performance.
+These are development results on a single hold-out split and should not be interpreted as production performance. Role-aware and external validation are planned improvements.
 
 The detailed values are stored in `models/evaluation.json`.
 
 ## Training the Model
 
-After downloading the dataset:
+After downloading the dataset and generating the cleaned dataset:
 
 ```bash
-python -m ml.train --data data/raw/resume_data_for_ranking.csv
+python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
+python -m ml.train --data data/processed/cleaned_resume_data.csv
 ```
 
 This creates:
@@ -126,12 +170,14 @@ source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
-### 4. Download the dataset and train
+### 4. Download the dataset, clean it, and train
 
 ```bash
 mkdir -p data/raw
 # Place resume_data_for_ranking.csv in data/raw/
-python -m ml.train --data data/raw/resume_data_for_ranking.csv
+python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
+python -m ml.eda --data data/processed/cleaned_resume_data.csv
+python -m ml.train --data data/processed/cleaned_resume_data.csv
 ```
 
 ### 5. Start the API
@@ -174,10 +220,14 @@ smart-resume-screening-and-candidate-ranking-tool/
 ├── data/
 │   ├── raw/
 │   │   └── README.md
+│   ├── processed/
+│   ├── reports/
 │   └── README.md
 │
 ├── ml/
 │   ├── __init__.py
+│   ├── data_cleaning.py
+│   ├── eda.py
 │   ├── preprocessing.py
 │   └── train.py
 │
@@ -219,6 +269,7 @@ A predicted match score is a screening signal. It should not be used as the sole
 4. Add OCR for scanned resumes.
 5. Add database storage, authentication, and recruiter-specific workflows.
 6. Add automated tests and CI.
+7. Validate against a separately collected, unseen resume/job dataset.
 
 ## Author
 
