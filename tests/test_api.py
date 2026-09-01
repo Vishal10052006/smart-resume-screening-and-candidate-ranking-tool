@@ -20,6 +20,7 @@ def test_short_job_description_is_rejected() -> None:
     response = client.post(
         "/api/analyze",
         data={"job_description": "Python developer"},
+        files={"resumes": ("candidate.txt", b"short", "text/plain")},
     )
 
     assert response.status_code == 400
