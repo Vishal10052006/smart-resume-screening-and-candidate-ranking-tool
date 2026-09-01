@@ -26,15 +26,25 @@ RESUME_TEXT_COLUMNS = [
     "professional_company_names", "positions", "responsibilities",
     "languages", "certification_skills",
 ]
-
 JOB_TEXT_COLUMNS = [
     "job_position_name", "educational_requirements", "experiencere_requirement",
     "responsibilities_1", "skills_required", "related_skils_in_job",
 ]
 
 
+def flatten_items(value: object) -> list[str]:
+    """Flatten nested list-like values into normalized text items."""
+    if isinstance(value, (list, tuple, set)):
+        items: list[str] = []
+        for item in value:
+            items.extend(flatten_items(item))
+        return items
+    text = str(value).strip()
+    return [text] if text else []
+
+
 def parse_listish(value: object) -> list[str]:
-    """Parse list-like fields while retaining a safe text fallback."""
+    """Parse Python-list strings and common delimited skill fields safely."""
     if pd.isna(value):
         return []
     text = str(value).strip()
@@ -43,16 +53,32 @@ def parse_listish(value: object) -> list[str]:
     try:
         parsed = ast.literal_eval(text)
         if isinstance(parsed, (list, tuple, set)):
-            return [str(item).strip() for item in parsed if str(item).strip()]
+            return flatten_items(parsed)
     except (ValueError, SyntaxError):
         pass
     return [item.strip() for item in re.split(r"[,;\n|]+", text) if item.strip()]
+
+
+def normalize_skill(skill: str) -> str:
+    """Normalize skill text for frequency analysis."""
+    return re.sub(r"\s+", " ", skill.lower().strip())
 
 
 def build_text(df: pd.DataFrame, columns: list[str]) -> pd.Series:
     """Combine available text columns into one analysis representation."""
     available = [column for column in columns if column in df.columns]
     return df[available].fillna("").astype(str).agg(" ".join, axis=1)
+
+
+def frequency(items: pd.Series) -> dict[str, int]:
+    """Count normalized items across records."""
+    counts: dict[str, int] = {}
+    for values in items:
+        for value in values:
+            key = normalize_skill(value)
+            if key:
+                counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def run_eda(data_path: Path, report_dir: Path) -> dict:
@@ -66,14 +92,14 @@ def run_eda(data_path: Path, report_dir: Path) -> dict:
     resume_text = build_text(df, RESUME_TEXT_COLUMNS)
     job_text = build_text(df, JOB_TEXT_COLUMNS)
     resume_skills = df["skills"].map(parse_listish)
-    job_skills = df["skills_required"].map(parse_listish)
 
-    skill_frequency: dict[str, int] = {}
-    for skills in resume_skills:
-        for skill in skills:
-            key = re.sub(r"\s+", " ", skill.lower().strip())
-            if key:
-                skill_frequency[key] = skill_frequency.get(key, 0) + 1
+    # `related_skils_in_job` contains nested lists in this dataset and is the
+    # most complete job-side skill source, so use it for job skill analysis.
+    job_skill_source = "related_skils_in_job" if "related_skils_in_job" in df else "skills_required"
+    job_skills = df[job_skill_source].map(parse_listish)
+
+    resume_frequency = frequency(resume_skills)
+    job_frequency = frequency(job_skills)
 
     score_bins = pd.cut(
         df[TARGET],
@@ -88,7 +114,6 @@ def run_eda(data_path: Path, report_dir: Path) -> dict:
         "job_skill_count": job_skills.map(len),
         TARGET: df[TARGET].astype(float),
     })
-
     correlations = (
         analysis.corr(numeric_only=True)[TARGET]
         .drop(TARGET)
@@ -110,10 +135,7 @@ def run_eda(data_path: Path, report_dir: Path) -> dict:
             "median": float(df[TARGET].median()),
             "std": float(df[TARGET].std()),
             "unique_values": int(df[TARGET].nunique()),
-            "score_bands": {
-                str(label): int(count)
-                for label, count in score_bins.value_counts(sort=False).items()
-            },
+            "score_bands": {str(k): int(v) for k, v in score_bins.value_counts(sort=False).items()},
         },
         "text": {
             "resume_words": {
@@ -130,21 +152,18 @@ def run_eda(data_path: Path, report_dir: Path) -> dict:
             },
         },
         "skills": {
+            "job_skill_source": job_skill_source,
             "resume_count_mean": float(analysis["resume_skill_count"].mean()),
             "resume_count_median": float(analysis["resume_skill_count"].median()),
             "job_count_mean": float(analysis["job_skill_count"].mean()),
             "job_count_median": float(analysis["job_skill_count"].median()),
-            "top_20": dict(sorted(skill_frequency.items(), key=lambda x: x[1], reverse=True)[:20]),
+            "top_resume_skills": dict(sorted(resume_frequency.items(), key=lambda x: x[1], reverse=True)[:20]),
+            "top_job_skills": dict(sorted(job_frequency.items(), key=lambda x: x[1], reverse=True)[:20]),
         },
         "job_positions": {
-            "top_10": {
-                str(name): int(count)
-                for name, count in df["job_position_name"].value_counts().head(10).items()
-            }
+            "top_10": {str(k): int(v) for k, v in df["job_position_name"].value_counts().head(10).items()}
         },
-        "numeric_correlations_with_target": {
-            name: float(value) for name, value in correlations.items()
-        },
+        "numeric_correlations_with_target": {k: float(v) for k, v in correlations.items()},
         "modeling_notes": [
             "matched_score is a continuous regression target.",
             "Resume and job text are suitable for TF-IDF/NLP features.",
@@ -162,16 +181,15 @@ def run_eda(data_path: Path, report_dir: Path) -> dict:
     pd.DataFrame({"job_position": job_counts.index, "records": job_counts.values}).to_csv(
         report_dir / "job_position_distribution.csv", index=False
     )
-
     band_counts = score_bins.value_counts(sort=False)
     pd.DataFrame({"score_band": band_counts.index.astype(str), "records": band_counts.values}).to_csv(
         report_dir / "match_score_distribution.csv", index=False
     )
+    top_skills = sorted(resume_frequency.items(), key=lambda x: x[1], reverse=True)[:50]
+    pd.DataFrame(top_skills, columns=["skill", "records"]).to_csv(report_dir / "top_skills.csv", index=False)
+    top_job_skills = sorted(job_frequency.items(), key=lambda x: x[1], reverse=True)[:50]
+    pd.DataFrame(top_job_skills, columns=["skill", "records"]).to_csv(report_dir / "top_job_skills.csv", index=False)
 
-    top_skills = sorted(skill_frequency.items(), key=lambda x: x[1], reverse=True)[:50]
-    pd.DataFrame(top_skills, columns=["skill", "records"]).to_csv(
-        report_dir / "top_skills.csv", index=False
-    )
     return report
 
 
