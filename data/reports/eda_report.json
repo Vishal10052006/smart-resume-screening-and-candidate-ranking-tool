@@ -33,11 +33,12 @@
     "job_words": {"mean": 64.2, "median": 59, "min": 3, "max": 237}
   },
   "skills": {
+    "job_skill_source": "related_skils_in_job",
     "resume_count_mean": 21.6,
     "resume_count_median": 22,
-    "job_count_mean": 0.0,
-    "job_count_median": 0,
-    "top_20": {
+    "job_count_mean": 9.5463,
+    "job_count_median": 6,
+    "top_resume_skills": {
       "python": 3640,
       "machine learning": 3444,
       "sql": 1736,
@@ -53,6 +54,28 @@
       "data science": 924,
       "project management": 924,
       "accounting": 846
+    },
+    "top_job_skills": {
+      "machine learning": 1484,
+      "project management": 1036,
+      "sales": 908,
+      "troubleshooting": 868,
+      "data analysis": 756,
+      "python": 728,
+      "customer service": 710,
+      "marketing": 600,
+      "accounting": 578,
+      "maintenance": 560,
+      "leadership": 552,
+      "budgeting": 504,
+      "testing": 504,
+      "financial statements": 476,
+      "communication": 476,
+      "c++": 448,
+      "quality assurance": 420,
+      "automation": 392,
+      "documentation": 364,
+      "installation": 336
     }
   },
   "job_positions": {
