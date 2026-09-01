@@ -1,275 +1,234 @@
 # Smart Resume Screening and Candidate Ranking Tool
 
-A machine-learning application that compares candidate resumes with job requirements and produces an explainable candidate ranking.
+A machine-learning application for comparing resumes with job requirements and producing an explainable candidate ranking.
 
-## Overview
+## What it does
 
-Initial resume screening is repetitive: recruiters read many documents, identify relevant skills, and compare candidates against the same requirements.
+A recruiter enters a job description and uploads multiple resumes. The application extracts the resume text, identifies relevant skills, calculates a match score, and ranks candidates. When a trained model is available, the ranking uses supervised NLP; otherwise the application falls back to transparent TF-IDF similarity.
 
-This project automates that first-pass workflow. A recruiter provides a job description and uploads multiple resumes. The system extracts text, builds resume/job representations, predicts a match score with a supervised NLP model, and shows skill-level diagnostics alongside the ranking.
+The system is designed for **first-pass screening assistance**. Final hiring decisions remain with the recruiter.
 
-The tool is intended to support screening, not replace human hiring decisions.
-
-## Current MVP
-
-- PDF, DOCX, and TXT resume parsing
-- Multiple resume upload
-- Job-description input
-- Resume/job text preprocessing
-- Dataset cleaning and validation pipeline
-- Exploratory data analysis pipeline
-- Supervised ML training pipeline
-- TF-IDF feature extraction
-- Ridge regression for match-score prediction
-- Candidate ranking by predicted match score
-- Skill extraction and skill-gap diagnostics
-- Email and basic experience extraction
-- Fallback TF-IDF similarity when a trained model artifact is unavailable
-- FastAPI REST API
-- Browser-based recruiter interface
-- File-size and file-type validation
-- Health-check endpoint
-
-## Dataset
-
-The initial training dataset is **Resume Data for Ranking** from Kaggle.
-
-Source: https://www.kaggle.com/datasets/thejohnwick001/resume-data-for-ranking
-
-The dataset contains **9,544 records and 35 columns**, including resume information, job requirements, and the `matched_score` target.
-
-The raw dataset is not committed to this repository. Download it from Kaggle and place it at:
-
-```text
-data/raw/resume_data_for_ranking.csv
-```
-
-See `data/raw/README.md` for setup instructions.
-
-## Data Preparation and EDA
-
-The project keeps the raw source data separate from generated datasets. The cleaning pipeline:
-
-- normalizes column names and text whitespace
-- checks and removes exact duplicate records
-- validates `matched_score` as a numeric value in the 0–1 range
-- handles missing text without inventing numeric values
-- writes a machine-readable quality report
-
-Run cleaning with:
-
-```bash
-python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
-```
-
-Then run EDA on the cleaned data:
-
-```bash
-python -m ml.eda --data data/processed/cleaned_resume_data.csv
-```
-
-The EDA report examines target distribution, job-position distribution, resume/job text length, skill frequencies, and simple relationships between derived numeric features and the target.
-
-### EDA findings
-
-- **9,544** cleaned records and **35** columns
-- **0** duplicate records
-- **0** invalid target records removed
-- **0** missing cells after cleaning
-- **28** distinct job positions
-- Mean `matched_score`: **0.6608**
-- Median `matched_score`: **0.6833**
-- Target range: **0.00–0.97**
-- Resume-side text averages about **101 words** per record
-- Job-side text averages about **64 words** per record
-
-The job positions are represented at nearly equal frequencies. This suggests deliberate balancing or construction of the dataset, so model results should be validated on newly collected or external examples before production use.
-
-Detailed outputs are stored in `data/reports/`.
-
-## ML Pipeline
+## Project Pipeline
 
 ```text
 Kaggle Dataset
       |
       v
-Data Cleaning
+Data Collection
+      |
+      v
+Data Cleaning + Validation
       |
       v
 Exploratory Data Analysis
       |
       v
-Resume + Job Text Construction
+Feature Engineering
       |
-      v
-TF-IDF Vectorization
+      +--> TF-IDF unigrams/bigrams
+      +--> Skill coverage
+      +--> Matched-skill signals
       |
       v
 Ridge Regression
       |
       v
-Predicted Match Score
+Evaluation
+      |
+      +--> MAE / RMSE / R2
+      +--> NDCG@10
       |
       v
-Candidate Ranking
+FastAPI Application
+      |
+      v
+Candidate Ranking + Skill Gaps
 ```
 
-The training representation uses candidate-side fields such as skills, education, experience, positions, responsibilities, and career objective together with job-side requirements, responsibilities, and required skills.
+## Dataset
 
-### Initial evaluation
+The development dataset is **Resume Data for Ranking** from Kaggle:
 
-The first development experiment used an 80/20 split with `random_state=42`.
+https://www.kaggle.com/datasets/thejohnwick001/resume-data-for-ranking
 
-| Metric | Result |
+The local experiment contains **9,544 records and 35 columns** with resume information, job requirements, and the `matched_score` target. The raw CSV is intentionally not stored in this repository.
+
+Place it at:
+
+```text
+data/raw/resume_data_for_ranking.csv
+```
+
+## Data Preparation
+
+### Clean the dataset
+
+```bash
+python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
+```
+
+The cleaner:
+
+- normalizes column names;
+- normalizes text whitespace;
+- removes exact duplicate rows;
+- validates `matched_score` in `[0, 1]`;
+- removes only invalid-target rows;
+- fills missing text with empty strings;
+- avoids artificial numeric zero imputation;
+- writes a reproducible quality report.
+
+### Run EDA
+
+```bash
+python -m ml.eda --data data/processed/cleaned_resume_data.csv
+```
+
+The current EDA reports 9,544 records, 28 job positions, no exact duplicates, no invalid targets, and no remaining missing cells after cleaning. The target mean is 0.6608 and the median is 0.6833. Detailed reports are under `data/reports/`.
+
+## Feature Engineering
+
+Feature construction is shared between training and API inference to avoid train/inference mismatch.
+
+The representation contains:
+
+- resume-side text;
+- job-side text;
+- TF-IDF word and bigram features;
+- phrase-aware skill extraction;
+- skill coverage buckets;
+- matched-skill count signals.
+
+`matched_score` is never used as an input feature.
+
+## Model Training
+
+Run:
+
+```bash
+python -m ml.train --data data/processed/cleaned_resume_data.csv
+```
+
+The training pipeline:
+
+1. builds the engineered resume/job representation;
+2. evaluates a random 80/20 hold-out;
+3. evaluates a stricter job-position-grouped hold-out;
+4. calculates MAE, RMSE, R², and NDCG@10;
+5. refits the final Ridge model on the complete cleaned dataset;
+6. saves `models/resume_match_ridge.joblib` and `models/evaluation.json`.
+
+The binary model is excluded from GitHub. This keeps the repository lightweight and makes training reproducible from the documented source dataset.
+
+### Baseline reference
+
+An earlier TF-IDF + Ridge experiment achieved:
+
+| Metric | Baseline |
 |---|---:|
 | MAE | 0.0919 |
 | RMSE | 0.1195 |
 | R² | 0.4840 |
 
-These are development results on a single hold-out split and should not be interpreted as production performance. Role-aware and external validation are planned improvements.
+These values are retained only as a baseline reference. They are **not** the evaluation of the upgraded feature pipeline. Run `ml.train` to generate the current metrics.
 
-The detailed values are stored in `models/evaluation.json`.
+## Application
 
-## Training the Model
-
-After downloading the dataset and generating the cleaned dataset:
-
-```bash
-python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
-python -m ml.train --data data/processed/cleaned_resume_data.csv
-```
-
-This creates:
-
-```text
-models/resume_match_ridge.joblib
-models/evaluation.json
-```
-
-The binary model is intentionally not committed to GitHub. This keeps the repository small and makes the training process reproducible.
-
-## Running the Application
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Vishal10052006/smart-resume-screening-and-candidate-ranking-tool.git
-cd smart-resume-screening-and-candidate-ranking-tool
-```
-
-### 2. Create and activate a virtual environment
+### Install
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
 pip install -r backend/requirements.txt
 ```
 
-### 4. Download the dataset, clean it, and train
-
-```bash
-mkdir -p data/raw
-# Place resume_data_for_ranking.csv in data/raw/
-python -m ml.data_cleaning --input data/raw/resume_data_for_ranking.csv
-python -m ml.eda --data data/processed/cleaned_resume_data.csv
-python -m ml.train --data data/processed/cleaned_resume_data.csv
-```
-
-### 5. Start the API
+### Start
 
 ```bash
 uvicorn backend.app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` for the interface or `http://127.0.0.1:8000/docs` for the API documentation.
+Open:
 
-## API
+- `http://127.0.0.1:8000` — recruiter interface
+- `http://127.0.0.1:8000/docs` — interactive API documentation
+- `http://127.0.0.1:8000/health` — service health
 
-### `GET /health`
+### API
 
-Returns application and model availability information.
+`POST /api/analyze` accepts:
 
-### `POST /api/analyze`
+- `job_description` — job description text;
+- `resumes` — one or more PDF, DOCX, or TXT files.
 
-Accepts:
+The response contains ranked candidates, predicted score, semantic similarity, skill coverage, matched skills, missing skills, detected email, and extracted experience when available.
 
-- `job_description` — job description text
-- `resumes` — one or more PDF, DOCX, or TXT files
+## Testing
 
-Returns ranked candidates with the predicted match score and supporting diagnostics.
+Run the automated tests with:
+
+```bash
+python -m pytest -q
+```
+
+GitHub Actions runs the test suite on pushes to `main` and on pull requests.
+
+## Docker
+
+Build and run:
+
+```bash
+docker build -t smart-resume-screening .
+docker run --rm -p 8000:8000 smart-resume-screening
+```
+
+The application can still demonstrate the screening workflow without a trained model because it has a TF-IDF similarity fallback.
 
 ## Repository Structure
 
 ```text
 smart-resume-screening-and-candidate-ranking-tool/
 |
+├── .github/workflows/ci.yml
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py
 │   │   ├── main.py
 │   │   └── ml_predictor.py
-│   ├── __init__.py
-│   ├── .env.example
 │   └── requirements.txt
-│
 ├── data/
-│   ├── raw/
-│   │   └── README.md
-│   ├── processed/
-│   ├── reports/
-│   └── README.md
-│
+│   ├── raw/README.md
+│   ├── processed/README.md
+│   └── reports/
+├── docs/
+│   └── PROJECT_REPORT.md
 ├── ml/
-│   ├── __init__.py
 │   ├── data_cleaning.py
 │   ├── eda.py
+│   ├── features.py
 │   ├── preprocessing.py
 │   └── train.py
-│
 ├── models/
 │   ├── README.md
 │   └── evaluation.json
-│
+├── tests/
+│   ├── test_api.py
+│   └── test_features.py
+├── Dockerfile
+├── .dockerignore
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-## Limitations
+## Current Limitations
 
-The current version is an academic/project MVP. It does not yet include:
+This is an academic/project MVP. It does not claim production-grade hiring accuracy. Further work should include OCR for scanned resumes, stronger semantic embeddings, richer experience/education extraction, external validation, fairness testing, authentication, secure persistence, monitoring, and a larger representative dataset.
 
-- OCR for scanned/image-only resumes
-- Transformer embeddings
-- Advanced resume section classification
-- Persistent candidate database
-- Authentication and role-based access
-- Comprehensive bias and fairness evaluation
-- Ranking-specific validation such as NDCG@K
-- Production monitoring
+## Responsible Use
 
-These are planned improvements rather than claims about the current implementation.
+Resume data can contain personally identifiable information. Do not commit real candidate documents or private recruitment records. Use appropriately licensed, anonymized, or synthetic data for development.
 
-## Data Privacy and Responsible Use
-
-Resumes may contain personally identifiable information. Candidate documents should not be committed to this repository. The API processes uploaded files in memory and does not intentionally persist them.
-
-A predicted match score is a screening signal. It should not be used as the sole basis for employment decisions.
-
-## Future Work
-
-1. Compare the baseline model with tree-based regressors and transformer embeddings.
-2. Add ranking metrics such as NDCG@K and Precision@K.
-3. Improve skill/entity extraction with a maintained taxonomy or NER model.
-4. Add OCR for scanned resumes.
-5. Add database storage, authentication, and recruiter-specific workflows.
-6. Add automated tests and CI.
-7. Validate against a separately collected, unseen resume/job dataset.
+A model score is a ranking signal, not a hiring decision. Human review is required before any employment action.
 
 ## Author
 
@@ -277,7 +236,3 @@ A predicted match score is a screening signal. It should not be used as the sole
 Computer Science & Engineering (AI)
 
 GitHub: https://github.com/Vishal10052006
-
-## License
-
-See the `LICENSE` file for license information.
