@@ -93,10 +93,10 @@
     }
   },
   "numeric_correlations_with_target": {
+    "job_skill_count": 0.1189,
     "resume_words": 0.0417,
-    "job_words": 0.0,
     "resume_skill_count": 0.0342,
-    "job_skill_count": 0.0
+    "job_words": 0.0
   },
   "modeling_notes": [
     "matched_score is a continuous regression target.",
