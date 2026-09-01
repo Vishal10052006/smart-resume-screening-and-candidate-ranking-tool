@@ -32,6 +32,7 @@ def test_training_and_inference_representation_contains_same_markers() -> None:
         "Need Python and machine learning skills",
     )
 
-    assert "[job]" in pair
-    assert "skill_coverage_high" in pair
-    assert "matched_skills_2" in pair
+    assert "[job]" not in pair
+    assert "[JOB]" in pair
+    assert "SKILL_COVERAGE_HIGH" in pair
+    assert "MATCHED_SKILLS_2" in pair
