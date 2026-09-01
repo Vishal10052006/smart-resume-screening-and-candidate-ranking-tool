@@ -26,6 +26,7 @@ htmlcov/
 
 # Local data and uploaded resumes
 data/uploads/
+data/raw/*.csv
 *.pdf
 *.docx
 *.txt
