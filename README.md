@@ -37,6 +37,7 @@ Evaluation
       |
       +--> MAE / RMSE / R2
       +--> NDCG@10
+      +--> Job-position-grouped hold-out
       |
       v
 FastAPI Application
@@ -109,6 +110,12 @@ Run:
 python -m ml.train --data data/processed/cleaned_resume_data.csv
 ```
 
+Or run the complete reproducible pipeline:
+
+```bash
+bash scripts/run_pipeline.sh
+```
+
 The training pipeline:
 
 1. builds the engineered resume/job representation;
@@ -130,7 +137,7 @@ An earlier TF-IDF + Ridge experiment achieved:
 | RMSE | 0.1195 |
 | R² | 0.4840 |
 
-These values are retained only as a baseline reference. They are **not** the evaluation of the upgraded feature pipeline. Run `ml.train` to generate the current metrics.
+These values are retained only as a baseline reference. They are **not** the evaluation of the upgraded feature pipeline. Run `ml.train` or `scripts/run_pipeline.sh` to generate the current metrics.
 
 ## Application
 
@@ -171,7 +178,7 @@ Run the automated tests with:
 python -m pytest -q
 ```
 
-GitHub Actions runs the test suite on pushes to `main` and on pull requests.
+The suite covers service health, request validation, unsupported file types, and a complete readable-TXT ranking path. GitHub Actions runs the test suite on pushes to `main` and on pull requests.
 
 ## Docker
 
@@ -183,6 +190,10 @@ docker run --rm -p 8000:8000 smart-resume-screening
 ```
 
 The application can still demonstrate the screening workflow without a trained model because it has a TF-IDF similarity fallback.
+
+## Demo / Viva
+
+See [`docs/DEMO_CHECKLIST.md`](docs/DEMO_CHECKLIST.md) for the presentation sequence, reproducibility steps, and concise explanations of the modeling choices.
 
 ## Repository Structure
 
@@ -200,6 +211,7 @@ smart-resume-screening-and-candidate-ranking-tool/
 │   ├── processed/README.md
 │   └── reports/
 ├── docs/
+│   ├── DEMO_CHECKLIST.md
 │   └── PROJECT_REPORT.md
 ├── ml/
 │   ├── data_cleaning.py
@@ -210,6 +222,7 @@ smart-resume-screening-and-candidate-ranking-tool/
 ├── models/
 │   ├── README.md
 │   └── evaluation.json
+├── scripts/run_pipeline.sh
 ├── tests/
 │   ├── test_api.py
 │   └── test_features.py
